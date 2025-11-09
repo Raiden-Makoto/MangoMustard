@@ -1,0 +1,25 @@
+# Build directories
+/build/
+/out/
+/dist/
+/bin/
+/CMakeFiles/
+
+# CMake generated files
+CMakeCache.txt
+cmake_install.cmake
+Makefile
+*.cmake
+
+# macOS files
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# IDEs and editors
+.vscode/
+.idea/
+*.code-workspace
+
+# Logs
+*.log
