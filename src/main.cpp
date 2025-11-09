@@ -1,5 +1,7 @@
 #include <raylib.h>
 
+void DrawTitleScreen();
+
 int main(void) {
     const int screenWidth = 960;
     const int screenHeight = 720;
@@ -12,16 +14,25 @@ int main(void) {
         return 1;
     }
 
+    const float scale = 0.15f; // 85% smaller than original size
+    const Vector2 mangoSize = {
+        static_cast<float>(mango.width) * scale,
+        static_cast<float>(mango.height) * scale
+    };
+
     Vector2 mangoPos = {
-        (screenWidth - static_cast<float>(mango.width)) / 2.0f,
-        (screenHeight - static_cast<float>(mango.height)) / 2.0f
+        (screenWidth - mangoSize.x) / 2.0f,
+        (screenHeight - mangoSize.y) / 2.0f + 120.0f
     };
 
     SetTargetFPS(60);
     while (!WindowShouldClose()) {
         BeginDrawing();
         ClearBackground(BLACK);
-        DrawTextureV(mango, mangoPos, WHITE);
+
+        DrawTitleScreen();
+        DrawTextureEx(mango, mangoPos, 0.0f, scale, WHITE);
+
         EndDrawing();
     }
 
