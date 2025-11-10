@@ -1,8 +1,12 @@
 #include <raylib.h>
 
+#include "level1.h"
+#include "levelselect.h"
+
 void DrawTitleScreen();
 
-int main(void) {
+int main(void)
+{
     const int screenWidth = 960;
     const int screenHeight = 720;
 
@@ -20,20 +24,64 @@ int main(void) {
         static_cast<float>(mango.height) * scale
     };
 
-    Vector2 mangoPos = {
+    Vector2 titleMangoPos = {
         (screenWidth - mangoSize.x) / 2.0f,
         (screenHeight - mangoSize.y) / 2.0f + 120.0f
     };
 
+    enum class GameState {
+        Title,
+        LevelSelect,
+        Level1
+    };
+
+    constexpr bool kDebugStartInLevel1 = true;
+    GameState state = kDebugStartInLevel1 ? GameState::Level1 : GameState::Title;
+
+    LevelData levels[10] = {};
+    for (int i = 0; i < 10; ++i) {
+        levels[i].unlocked = (i == 0); // Only level 1 unlocked by default
+    }
+
+    int selectedLevel = 1;
+
     SetTargetFPS(60);
     while (!WindowShouldClose()) {
-        BeginDrawing();
-        ClearBackground(BLACK);
+        switch (state) {
+            case GameState::Title: {
+                BeginDrawing();
+                ClearBackground(BLACK);
 
-        DrawTitleScreen();
-        DrawTextureEx(mango, mangoPos, 0.0f, scale, WHITE);
+                DrawTitleScreen();
+                DrawTextureEx(mango, titleMangoPos, 0.0f, scale, WHITE);
 
-        EndDrawing();
+                bool startGame = IsKeyPressed(KEY_ENTER) || IsGestureDetected(GESTURE_TAP);
+                EndDrawing();
+
+                if (startGame) {
+                    state = GameState::LevelSelect;
+                }
+                break;
+            }
+            case GameState::LevelSelect: {
+                selectedLevel = UpdateLevelSelect(selectedLevel, levels, 10);
+                if (IsKeyPressed(KEY_ENTER) && levels[selectedLevel - 1].unlocked) {
+                    if (selectedLevel == 1) {
+                        state = GameState::Level1;
+                    }
+                }
+                break;
+            }
+            case GameState::Level1: {
+                BeginDrawing();
+                ClearBackground(BLACK);
+
+                DrawLevel1(mango, scale);
+
+                EndDrawing();
+                break;
+            }
+        }
     }
 
     UnloadTexture(mango);

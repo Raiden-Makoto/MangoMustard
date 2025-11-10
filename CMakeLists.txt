@@ -23,6 +23,8 @@ endif ()
 add_executable(${PROJECT_NAME}
     src/main.cpp
     src/titlescreen.cpp
+    src/levelselect.cpp
+    src/level1.cpp
 )
 
 target_include_directories(${PROJECT_NAME} PRIVATE ${RAYLIB_INCLUDE_DIR})
