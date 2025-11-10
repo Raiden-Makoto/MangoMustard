@@ -65,7 +65,7 @@ void DrawSpikesDown(Vector2 start, int count, float width, float height)
 
 } // namespace
 
-void DrawLevel1(Texture2D mango, float scale)
+void DrawLevel1(Texture2D cat, float catScale, Texture2D mango, float mangoScale)
 {
     const int screenWidth = GetScreenWidth();
     const int screenHeight = GetScreenHeight();
@@ -74,6 +74,15 @@ void DrawLevel1(Texture2D mango, float scale)
     const float groundHeight = static_cast<float>(screenHeight) * 0.05f; // 720 * 0.05 = 36 px tall
     const Rectangle groundRect{0.0f, static_cast<float>(screenHeight) - groundHeight, static_cast<float>(screenWidth), groundHeight}; // y = 720 - 36 = 684
     DrawRect(groundRect, kPlatformColor);
+
+    const float mangoHover = 18.0f;
+    const float mangoWidth = static_cast<float>(mango.width) * mangoScale;
+    const float mangoHeight = static_cast<float>(mango.height) * mangoScale;
+    float mangoX = static_cast<float>(screenWidth) * 0.88f;
+    float mangoY = groundRect.y - mangoHeight - mangoHover;
+
+    // --- Mango ---
+    DrawTextureEx(mango, Vector2{mangoX, mangoY}, 0.0f, mangoScale, WHITE);
 
     // --- Bottom highlight bar (green rectangle) ---
     const Rectangle greenCoreRect{
@@ -104,6 +113,11 @@ void DrawLevel1(Texture2D mango, float scale)
     const float hoverHeight = static_cast<float>(screenHeight) * 0.15f; 
     const Rectangle platformRect3{static_cast<float>(screenWidth) * 0.55f, distFromTop + hoverHeight, static_cast<float>(screenWidth) * 0.15f, platformHeight};
     DrawRect(platformRect3,kPlatformColor);
+
+    // -- Another Mango --
+    mangoX = static_cast<float>(screenWidth) * 0.60f;
+    mangoY = platformRect3.y - 2 * platformRect3.height - mangoHover;
+    DrawTextureEx(mango, Vector2{mangoX, mangoY}, 0.0f, mangoScale, WHITE);
 
     // -- Bottom Vertical Spikes --
     DrawSideSpikesLeft(Vector2{static_cast<float>(screenWidth), groundRect.y - 11*30.0f}, 11, 30.0f); // match horizontal spike size
@@ -138,8 +152,8 @@ void DrawLevel1(Texture2D mango, float scale)
     DrawRect(platformRect6,kPlatformColor);
 
     // --- Player spawn ---
-    const float catHeight = static_cast<float>(mango.height) * scale;
+    const float catHeight = static_cast<float>(cat.height) * catScale;
     const float catX = 40.0f;
     const float catY = groundRect.y - catHeight;
-    DrawTextureEx(mango, Vector2{catX, catY}, 0.0f, scale, WHITE);
+    DrawTextureEx(cat, Vector2{catX, catY}, 0.0f, catScale, WHITE);
 }

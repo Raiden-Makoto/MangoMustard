@@ -13,21 +13,29 @@ int main(void)
 
     InitWindow(screenWidth, screenHeight, "MangoMustard");
 
-    Texture2D mango = LoadTexture("src/assets/mangocat.png");
-    if (mango.id == 0) {
+    Texture2D cat = LoadTexture("src/assets/mangocat.png");
+    if (cat.id == 0) {
         CloseWindow();
         return 1;
     }
 
-    const float scale = 0.15f; // 85% smaller than original size
-    const Vector2 mangoSize = {
-        static_cast<float>(mango.width) * scale,
-        static_cast<float>(mango.height) * scale
+    Texture2D mango = LoadTexture("src/assets/mango.png");
+    if (mango.id == 0) {
+        UnloadTexture(cat);
+        CloseWindow();
+        return 1;
+    }
+
+    const float catScale = 0.15f; // 85% smaller than original size
+    const float mangoScale = 0.054f;
+    const Vector2 catSize = {
+        static_cast<float>(cat.width) * catScale,
+        static_cast<float>(cat.height) * catScale
     };
 
     Vector2 titleMangoPos = {
-        (screenWidth - mangoSize.x) / 2.0f,
-        (screenHeight - mangoSize.y) / 2.0f + 120.0f
+        (screenWidth - catSize.x) / 2.0f,
+        (screenHeight - catSize.y) / 2.0f + 120.0f
     };
 
     enum class GameState {
@@ -55,7 +63,7 @@ int main(void)
                 ClearBackground(BLACK);
 
                 DrawTitleScreen();
-                DrawTextureEx(mango, titleMangoPos, 0.0f, scale, WHITE);
+                DrawTextureEx(cat, titleMangoPos, 0.0f, catScale, WHITE);
 
                 bool startGame = IsKeyPressed(KEY_ENTER) || IsGestureDetected(GESTURE_TAP);
                 EndDrawing();
@@ -79,7 +87,7 @@ int main(void)
                 BeginDrawing();
                 ClearBackground(BLACK);
 
-                DrawLevel1(mango, scale);
+                DrawLevel1(cat, catScale, mango, mangoScale);
                 DrawLevelLabel(1);
                 int elapsedSeconds = static_cast<int>(GetTime() - levelStartTime);
                 DrawTimerLabel(elapsedSeconds);
@@ -91,6 +99,7 @@ int main(void)
     }
 
     UnloadTexture(mango);
+    UnloadTexture(cat);
     CloseWindow();
     return 0;
 }
