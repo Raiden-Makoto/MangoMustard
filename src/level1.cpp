@@ -35,9 +35,9 @@ void DrawVerticalSpikes(Vector2 start, int count, float size)
     for (int i = 0; i < count; ++i) {
         const float offset = i * size;
         Vector2 p1{start.x, start.y + offset};
-        Vector2 p2{start.x + size, start.y + offset + size * 0.5f};
+        Vector2 p2{start.x - size, start.y + offset + size * 0.5f};
         Vector2 p3{start.x, start.y + offset + size};
-        DrawTriangle(p1, p2, p3, kSpikeColor);
+        DrawTriangleLines(p1, p2, p3, kSpikeColor);
     }
 }
 
@@ -47,9 +47,9 @@ void DrawSideSpikesLeft(Vector2 start, int count, float size)
     for (int i = 0; i < count; ++i) {
         const float offset = i * size;
         Vector2 p1{start.x, start.y + offset};
-        Vector2 p2{start.x - size, start.y + offset + size * 0.5f};
+        Vector2 p2{start.x + size, start.y + offset + size * 0.5f};
         Vector2 p3{start.x, start.y + offset + size};
-        DrawTriangle(p1, p2, p3, kSpikeColor);
+        DrawTriangleLines(p1, p2, p3, kSpikeColor);
     }
 }
 
@@ -76,12 +76,25 @@ void DrawLevel1(Texture2D mango, float scale)
 
     
     // --- Floor spike clusters ---
-    DrawRectangleLines(249, 504, 200, 180, GREEN);  // outline the area
-    DrawSpikeRow(Vector2{250.0f, 684.0f}, 1, 180.0f, 180.0f); // is not shown at all
+    DrawSpikeRow(Vector2{groundRect.x + 140.0f, groundRect.y}, 3, 28.0f, 30.0f);
+
+    // -- Second Row Platform --
+    const float platformHeight = static_cast<float>(screenHeight) * 0.025f; // 720 * 0.025 = 18 px tall
+    const float distFromTop = static_cast<float>(screenHeight) * 0.65f; // 720 * 0.6 = 432 px from top
+    const Rectangle platformRect1{0.0f, distFromTop, static_cast<float>(screenWidth) * 0.30f, platformHeight};
+    DrawRect(platformRect1, kPlatformColor);
+
+    // -- Second Row Platform Above Grass --
+    const float hoverHeight = static_cast<float>(screenHeight) * 0.15f; 
+    const Rectangle platformRect2{static_cast<float>(screenWidth) * 0.55f, distFromTop + hoverHeight, static_cast<float>(screenWidth) * 0.15f, platformHeight};
+    DrawRect(platformRect2,kPlatformColor);
+
+    // -- Bottom Vertical Spikes --
+    DrawVerticalSpikes(Vector2{static_cast<float>(screenWidth), groundRect.y - 90.0f}, 3, 30.0f); // match horizontal spike size
     
     // --- Player spawn ---
-    //const float catHeight = static_cast<float>(mango.height) * scale;
-    //const float catX = 40.0f;
-    //const float catY = groundRect.y - catHeight;
-    //DrawTextureEx(mango, Vector2{catX, catY}, 0.0f, scale, WHITE);
+    const float catHeight = static_cast<float>(mango.height) * scale;
+    const float catX = 40.0f;
+    const float catY = groundRect.y - catHeight;
+    DrawTextureEx(mango, Vector2{catX, catY}, 0.0f, scale, WHITE);
 }
