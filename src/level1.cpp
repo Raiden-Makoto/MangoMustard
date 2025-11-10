@@ -97,6 +97,9 @@ void DrawLevel1(Texture2D mango, float scale)
     const Rectangle platformRect2{static_cast<float>(screenWidth) * 0.25f, distFromTop + platformHeight, static_cast<float>(screenWidth) * 0.16f, platformHeight};
     DrawRect(platformRect2,kIceColor);
 
+    // -- Under 2nd Row Spikes --
+    DrawSpikesDown(Vector2{groundRect.x + 140.0f, distFromTop + platformHeight * 2}, 3, 28.0f, 30.0f);
+
     // -- Second Row Platform Above Grass --
     const float hoverHeight = static_cast<float>(screenHeight) * 0.15f; 
     const Rectangle platformRect3{static_cast<float>(screenWidth) * 0.55f, distFromTop + hoverHeight, static_cast<float>(screenWidth) * 0.15f, platformHeight};
@@ -111,7 +114,7 @@ void DrawLevel1(Texture2D mango, float scale)
     DrawRect(platformRect4,kPlatformColor);
 
     // -- Third Row Left-Side Spikes --
-    DrawSideSpikesRight(Vector2{0.0f, distFromTop - 4*30.0f}, 4, 30.0f);
+    DrawSideSpikesRight(Vector2{0.0f, distFromTop - 6*30.0f}, 6, 30.0f);
     
     // -- Third Row Right-Side Spikes --
     DrawSideSpikesLeft(Vector2{static_cast<float>(screenWidth), distFromTop - 3*30.0f}, 3, 30.0f); 
@@ -122,11 +125,18 @@ void DrawLevel1(Texture2D mango, float scale)
 
     // Fourth Row Platforms --
     distFromTop -= static_cast<float>(screenHeight) * 0.15f; // 720 * 0.05 = 36 px
-    const Rectangle platformRect5{0, distFromTop - platformHeight, static_cast<float>(screenWidth) * 0.85f, platformHeight};
+    const Rectangle platformRect5{0, distFromTop - platformHeight - 2 * 30.0f, static_cast<float>(screenWidth) * 0.28f, platformHeight};
     DrawRect(platformRect5,kPlatformColor);
-    
-    
-    
+
+    // 3.5fth Row Platform -- 
+    const Rectangle platformRect6{
+        static_cast<float>(screenWidth) * 0.37f,
+        distFromTop + platformHeight,
+        static_cast<float>(screenWidth) * 0.15f,
+        platformHeight
+    };
+    DrawRect(platformRect6,kPlatformColor);
+
     // --- Player spawn ---
     const float catHeight = static_cast<float>(mango.height) * scale;
     const float catX = 40.0f;
