@@ -2,6 +2,7 @@
 
 #include "level1.h"
 #include "levelselect.h"
+#include "hud.h"
 
 void DrawTitleScreen();
 
@@ -37,6 +38,7 @@ int main(void)
 
     constexpr bool kDebugStartInLevel1 = true;
     GameState state = kDebugStartInLevel1 ? GameState::Level1 : GameState::Title;
+    double levelStartTime = GetTime();
 
     LevelData levels[10] = {};
     for (int i = 0; i < 10; ++i) {
@@ -68,6 +70,7 @@ int main(void)
                 if (IsKeyPressed(KEY_ENTER) && levels[selectedLevel - 1].unlocked) {
                     if (selectedLevel == 1) {
                         state = GameState::Level1;
+                        levelStartTime = GetTime();
                     }
                 }
                 break;
@@ -77,6 +80,9 @@ int main(void)
                 ClearBackground(BLACK);
 
                 DrawLevel1(mango, scale);
+                DrawLevelLabel(1);
+                int elapsedSeconds = static_cast<int>(GetTime() - levelStartTime);
+                DrawTimerLabel(elapsedSeconds);
 
                 EndDrawing();
                 break;
