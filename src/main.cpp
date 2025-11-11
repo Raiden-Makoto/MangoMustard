@@ -26,7 +26,7 @@ int main(void)
         return 1;
     }
 
-    const float catScale = 0.15f; // 85% smaller than original size
+    const float catScale = 0.12f; // 88% smaller than original size
     const float mangoScale = 0.054f;
     const Vector2 catSize = {
         static_cast<float>(cat.width) * catScale,
@@ -87,7 +87,7 @@ int main(void)
                 BeginDrawing();
                 ClearBackground(BLACK);
 
-                DrawLevel1(cat, catScale, mango, mangoScale);
+                DrawLevel1(cat, catScale, mango, mangoScale, GetFrameTime());
                 DrawLevelLabel(1);
                 int elapsedSeconds = static_cast<int>(GetTime() - levelStartTime);
                 DrawTimerLabel(elapsedSeconds);
