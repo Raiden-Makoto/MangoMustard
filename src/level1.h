@@ -2,5 +2,14 @@
 
 #include <raylib.h>
 
-void DrawLevel1(Texture2D cat, float catScale, Texture2D mango, float mangoScale, float deltaTime, int& collectedMangoes);
+void DrawLevel1(Texture2D cat,
+                float catScale,
+                Texture2D mango,
+                float mangoScale,
+                float deltaTime,
+                int& collectedMangoes,
+                bool& levelFailed,
+                bool& quitToMenu,
+                bool& levelRestarted);
 int GetLevel1TotalMangoCount();
+void ResetLevel1State();

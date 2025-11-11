@@ -21,7 +21,7 @@ void DrawRect(Rectangle rect, Color color)
 
 // Renders a horizontal row of triangular spikes resting on the baseline at `base.y`.
 // `count` controls how many spikes, `width` the footprint of each spike, and `height` their peak.
-void DrawSpikeRow(Vector2 base, int count, float width, float height)
+void DrawSpikeRow(Vector2 base, int count, float width, float height, std::vector<Rectangle>* hazardRects = nullptr)
 {
     for (int i = 0; i < count; ++i) {
         const float offset = i * width;
@@ -29,11 +29,14 @@ void DrawSpikeRow(Vector2 base, int count, float width, float height)
         Vector2 p2{base.x + offset + width * 0.5f, base.y - height};
         Vector2 p3{base.x + offset + width, base.y};
         DrawTriangleLines(p1, p2, p3, kSpikeColor);
+        if (hazardRects != nullptr) {
+            hazardRects->push_back(Rectangle{base.x + offset, base.y - height, width, height});
+        }
     }
 }
 
 // Draws a vertical column of spikes pointing leftwards, for the right wall hazard.
-void DrawSideSpikesLeft(Vector2 start, int count, float size)
+void DrawSideSpikesLeft(Vector2 start, int count, float size, std::vector<Rectangle>* hazardRects = nullptr)
 {
     for (int i = 0; i < count; ++i) {
         const float offset = i * size;
@@ -41,10 +44,13 @@ void DrawSideSpikesLeft(Vector2 start, int count, float size)
         Vector2 p2{start.x - size, start.y + offset + size * 0.5f};
         Vector2 p3{start.x, start.y + offset + size};
         DrawTriangleLines(p1, p2, p3, kSpikeColor);
+        if (hazardRects != nullptr) {
+            hazardRects->push_back(Rectangle{start.x - size, start.y + offset, size, size});
+        }
     }
 }
 
-void DrawSideSpikesRight(Vector2 start, int count, float size)
+void DrawSideSpikesRight(Vector2 start, int count, float size, std::vector<Rectangle>* hazardRects = nullptr)
 {
     for (int i = 0; i < count; ++i) {
         const float offset = i * size;
@@ -52,11 +58,14 @@ void DrawSideSpikesRight(Vector2 start, int count, float size)
         Vector2 p2{start.x + size, start.y + offset + size * 0.5f};
         Vector2 p3{start.x, start.y + offset + size};
         DrawTriangleLines(p1, p2, p3, kSpikeColor);
+        if (hazardRects != nullptr) {
+            hazardRects->push_back(Rectangle{start.x, start.y + offset, size, size});
+        }
     }
 }
 
 // Draws a row of downward-pointing spikes along a platform ceiling.
-void DrawSpikesDown(Vector2 start, int count, float width, float height)
+void DrawSpikesDown(Vector2 start, int count, float width, float height, std::vector<Rectangle>* hazardRects = nullptr)
 {
     for (int i = 0; i < count; ++i) {
         const float offset = i * width;
@@ -64,6 +73,9 @@ void DrawSpikesDown(Vector2 start, int count, float width, float height)
         Vector2 p2{start.x + offset + width, start.y};
         Vector2 p3{start.x + offset + width * 0.5f, start.y + height};
         DrawTriangleLines(p1, p2, p3, kSpikeColor);
+        if (hazardRects != nullptr) {
+            hazardRects->push_back(Rectangle{start.x + offset, start.y, width, height});
+        }
     }
 }
 
@@ -81,6 +93,7 @@ struct LevelState {
     std::vector<Collectible> mangoes;
     Vector2 spawn{};
     bool initialized = false;
+    bool failed = false;
 };
 
 LevelState& GetLevelState()
@@ -99,7 +112,15 @@ void ResetMangoes(LevelState& state, const std::vector<Vector2>& positions)
 }
 } // namespace
 
-void DrawLevel1(Texture2D cat, float catScale, Texture2D mango, float mangoScale, float deltaTime, int& collectedMangoes)
+void DrawLevel1(Texture2D cat,
+                float catScale,
+                Texture2D mango,
+                float mangoScale,
+                float deltaTime,
+                int& collectedMangoes,
+                bool& levelFailed,
+                bool& quitToMenu,
+                bool& levelRestarted)
 {
     const int screenWidth = GetScreenWidth();
     const int screenHeight = GetScreenHeight();
@@ -111,6 +132,9 @@ void DrawLevel1(Texture2D cat, float catScale, Texture2D mango, float mangoScale
     std::vector<Rectangle> platforms;
     platforms.reserve(12);
     platforms.push_back(groundRect);
+
+    std::vector<Rectangle> spikeHazards;
+    spikeHazards.reserve(64);
 
     std::vector<Vector2> mangoPositions;
     mangoPositions.reserve(4);
@@ -132,7 +156,7 @@ void DrawLevel1(Texture2D cat, float catScale, Texture2D mango, float mangoScale
 
     
     // --- Floor spike clusters ---
-    DrawSpikeRow(Vector2{groundRect.x + 140.0f, groundRect.y}, 3, 28.0f, 30.0f);
+    DrawSpikeRow(Vector2{groundRect.x + 140.0f, groundRect.y}, 3, 28.0f, 30.0f, &spikeHazards);
 
     // -- Second Row Platforms --
     const float platformHeight = static_cast<float>(screenHeight) * 0.025f; // 720 * 0.025 = 18 px tall
@@ -146,7 +170,7 @@ void DrawLevel1(Texture2D cat, float catScale, Texture2D mango, float mangoScale
     platforms.push_back(platformRect2);
 
     // -- Under 2nd Row Spikes --
-    DrawSpikesDown(Vector2{groundRect.x + 140.0f, distFromTop + platformHeight * 2}, 3, 28.0f, 15.0f);
+    DrawSpikesDown(Vector2{groundRect.x + 140.0f, distFromTop + platformHeight * 2}, 3, 28.0f, 15.0f, &spikeHazards);
 
     // -- Second Row Platform Above Grass --
     const float hoverHeight = static_cast<float>(screenHeight) * 0.20f; 
@@ -160,7 +184,7 @@ void DrawLevel1(Texture2D cat, float catScale, Texture2D mango, float mangoScale
         platformRect3.y - 2 * platformRect3.height - mangoHover});
 
     // -- Bottom Vertical Spikes --
-    DrawSideSpikesLeft(Vector2{static_cast<float>(screenWidth), groundRect.y - 11*30.0f}, 11, 30.0f); // match horizontal spike size
+    DrawSideSpikesLeft(Vector2{static_cast<float>(screenWidth), groundRect.y - 11*30.0f}, 11, 30.0f, &spikeHazards); // match horizontal spike size
 
     // -- Third Row Platforms --
     distFromTop -= static_cast<float>(screenHeight) * 0.15f; // 720 * 0.05 = 36 px
@@ -169,14 +193,14 @@ void DrawLevel1(Texture2D cat, float catScale, Texture2D mango, float mangoScale
     platforms.push_back(platformRect4);
 
     // -- Third Row Left-Side Spikes --
-    DrawSideSpikesRight(Vector2{0.0f, distFromTop - 6*30.0f}, 6, 30.0f);
+    DrawSideSpikesRight(Vector2{0.0f, distFromTop - 6*30.0f}, 6, 30.0f, &spikeHazards);
     
     // -- Third Row Right-Side Spikes --
-    DrawSideSpikesLeft(Vector2{static_cast<float>(screenWidth), distFromTop - 3*30.0f}, 3, 30.0f); 
+    DrawSideSpikesLeft(Vector2{static_cast<float>(screenWidth), distFromTop - 3*30.0f}, 3, 30.0f, &spikeHazards); 
 
     // -- Third Row Vertical Spikes --
-    DrawSpikeRow(Vector2{static_cast<float>(screenWidth) * 0.30f, distFromTop}, 3, 30.0f, 30.0f);
-    DrawSpikeRow(Vector2{static_cast<float>(screenWidth) * 0.50f, distFromTop}, 3, 30.0f, 30.0f);
+    DrawSpikeRow(Vector2{static_cast<float>(screenWidth) * 0.30f, distFromTop}, 3, 30.0f, 30.0f, &spikeHazards);
+    DrawSpikeRow(Vector2{static_cast<float>(screenWidth) * 0.50f, distFromTop}, 3, 30.0f, 30.0f, &spikeHazards);
 
     // Fourth Row Platforms --
     distFromTop -= static_cast<float>(screenHeight) * 0.15f; // 720 * 0.05 = 36 px
@@ -200,11 +224,16 @@ void DrawLevel1(Texture2D cat, float catScale, Texture2D mango, float mangoScale
     const float catWidth = static_cast<float>(cat.width) * catScale;
     const float catHeight = static_cast<float>(cat.height) * catScale;
     const Vector2 catSpawn{40.0f, groundRect.y - catHeight};
+    levelFailed = levelState.failed;
+    quitToMenu = false;
+    levelRestarted = false;
+
     const bool resetPressed = IsKeyPressed(KEY_R);
     if (resetPressed || !levelState.initialized) {
         PlayerControllerReset(catState, catSpawn);
         levelState.spawn = catSpawn;
         levelState.initialized = true;
+        levelState.failed = false;
     }
     if (levelState.mangoes.size() != mangoPositions.size() || resetPressed || !levelState.initialized) {
         ResetMangoes(levelState, mangoPositions);
@@ -226,18 +255,39 @@ void DrawLevel1(Texture2D cat, float catScale, Texture2D mango, float mangoScale
         static_cast<float>(screenHeight)
     };
 
-    PlayerControllerUpdate(catState, deltaTime, platforms, catWidth, catHeight, controllerConfig);
+    if (!levelState.failed) {
+        PlayerControllerUpdate(catState, deltaTime, platforms, catWidth, catHeight, controllerConfig);
+    } else {
+        catState.velocity = {0.0f, 0.0f};
+    }
 
     Rectangle catCollisionRect = PlayerControllerCollisionRect(catState, catWidth, catHeight, controllerConfig.collisionPadding);
 
+    bool hitHazard = false;
+    if (!levelState.failed) {
+        for (const Rectangle& hazard : spikeHazards) {
+            if (CheckCollisionRecs(catCollisionRect, hazard)) {
+                hitHazard = true;
+                break;
+            }
+        }
+    }
+
     int collectedCount = 0;
+    if (hitHazard) {
+        levelState.failed = true;
+        PlayerControllerReset(catState, levelState.spawn);
+        ResetMangoes(levelState, mangoPositions);
+        catCollisionRect = PlayerControllerCollisionRect(catState, catWidth, catHeight, controllerConfig.collisionPadding);
+    }
+
     for (auto& mangoState : levelState.mangoes) {
         if (mangoState.collected) {
             collectedCount++;
             continue;
         }
         Rectangle mangoRect{mangoState.position.x, mangoState.position.y, mangoWidth, mangoHeight};
-        if (CheckCollisionRecs(catCollisionRect, mangoRect)) {
+        if (!levelState.failed && CheckCollisionRecs(catCollisionRect, mangoRect)) {
             mangoState.collected = true;
             collectedCount++;
             continue;
@@ -245,13 +295,55 @@ void DrawLevel1(Texture2D cat, float catScale, Texture2D mango, float mangoScale
         DrawTextureEx(mango, mangoState.position, 0.0f, mangoScale, WHITE);
     }
 
-    collectedMangoes = collectedCount;
-
     DrawTextureEx(cat, catState.position, 0.0f, catScale, WHITE);
+
+    if (levelState.failed) {
+        DrawRectangle(0, 0, screenWidth, screenHeight, Fade(BLACK, 0.6f));
+        const char *failText = "Level Failed";
+        const int titleFont = 48;
+        const int titleWidth = MeasureText(failText, titleFont);
+        DrawText(failText, (screenWidth - titleWidth) / 2, screenHeight / 2 - 80, titleFont, RED);
+
+        const char *retryText = "Press R to retry";
+        const char *quitText = "Press Q to return to level select";
+        const int infoFont = 24;
+        const int retryWidth = MeasureText(retryText, infoFont);
+        const int quitWidth = MeasureText(quitText, infoFont);
+        DrawText(retryText, (screenWidth - retryWidth) / 2, screenHeight / 2, infoFont, RAYWHITE);
+        DrawText(quitText, (screenWidth - quitWidth) / 2, screenHeight / 2 + 40, infoFont, RAYWHITE);
+
+        if (IsKeyPressed(KEY_R)) {
+            PlayerControllerReset(catState, levelState.spawn);
+            ResetMangoes(levelState, mangoPositions);
+            collectedCount = 0;
+            levelState.failed = false;
+            levelRestarted = true;
+        } else if (IsKeyPressed(KEY_Q)) {
+            quitToMenu = true;
+            collectedMangoes = collectedCount;
+            levelFailed = true;
+            return;
+        }
+
+        if (levelState.failed) {
+            collectedMangoes = 0;
+            levelFailed = true;
+            return;
+        }
+    }
+
+    levelFailed = levelState.failed;
+    collectedMangoes = collectedCount;
 }
 
 int GetLevel1TotalMangoCount()
 {
     const LevelState& state = GetLevelState();
     return static_cast<int>(state.mangoes.size());
+}
+
+void ResetLevel1State()
+{
+    LevelState& state = GetLevelState();
+    state = LevelState{};
 }

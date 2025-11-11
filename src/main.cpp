@@ -38,6 +38,8 @@ int main(void)
         (screenHeight - catSize.y) / 2.0f + 120.0f
     };
 
+    ResetLevel1State();
+
     enum class GameState {
         Title,
         LevelSelect,
@@ -77,6 +79,7 @@ int main(void)
                 selectedLevel = UpdateLevelSelect(selectedLevel, levels, 10);
                 if (IsKeyPressed(KEY_ENTER) && levels[selectedLevel - 1].unlocked) {
                     if (selectedLevel == 1) {
+                        ResetLevel1State();
                         state = GameState::Level1;
                         levelStartTime = GetTime();
                     }
@@ -88,12 +91,37 @@ int main(void)
                 ClearBackground(BLACK);
 
                 int collectedMangoes = 0;
+                bool levelFailed = false;
+                bool quitToMenu = false;
+                bool levelRestarted = false;
                 const float deltaTime = GetFrameTime();
-                DrawLevel1(cat, catScale, mango, mangoScale, deltaTime, collectedMangoes);
+                DrawLevel1(cat,
+                           catScale,
+                           mango,
+                           mangoScale,
+                           deltaTime,
+                           collectedMangoes,
+                           levelFailed,
+                           quitToMenu,
+                           levelRestarted);
+
+                if (quitToMenu) {
+                    ResetLevel1State();
+                    state = GameState::LevelSelect;
+                    EndDrawing();
+                    break;
+                }
+
+                if (levelRestarted) {
+                    levelStartTime = GetTime();
+                }
+
                 DrawLevelLabel(1);
-                int elapsedSeconds = static_cast<int>(GetTime() - levelStartTime);
-                DrawTimerLabel(elapsedSeconds);
-                DrawMangoCounter(collectedMangoes, GetLevel1TotalMangoCount());
+                if (!levelFailed) {
+                    int elapsedSeconds = static_cast<int>(GetTime() - levelStartTime);
+                    DrawTimerLabel(elapsedSeconds);
+                    DrawMangoCounter(collectedMangoes, GetLevel1TotalMangoCount());
+                }
 
                 EndDrawing();
                 break;
