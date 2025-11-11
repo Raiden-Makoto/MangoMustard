@@ -29,3 +29,15 @@ void DrawMangoCounter(int collected, int total)
     const int textWidth = MeasureText(counterLabel, fontSize);
     DrawText(counterLabel, GetScreenWidth() - textWidth - padding, verticalOffset, fontSize, YELLOW);
 }
+
+void DrawLives(int lives)
+{
+    const char *label = TextFormat("Lives: %d", lives);
+    const int fontSize = 22;
+    const int padding = 16;
+    const int timerSpacing = 32;
+    const int counterSpacing = 30;
+    const int verticalOffset = padding + timerSpacing + counterSpacing;
+    const int labelWidth = MeasureText(label, fontSize);
+    DrawText(label, GetScreenWidth() - labelWidth - padding, verticalOffset, fontSize, YELLOW);
+}

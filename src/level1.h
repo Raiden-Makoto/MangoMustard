@@ -8,6 +8,7 @@ void DrawLevel1(Texture2D cat,
                 float mangoScale,
                 float deltaTime,
                 int& collectedMangoes,
+                int& livesRemaining,
                 bool& levelFailed,
                 bool& quitToMenu,
                 bool& levelRestarted);

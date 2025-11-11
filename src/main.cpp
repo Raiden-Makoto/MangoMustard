@@ -91,6 +91,7 @@ int main(void)
                 ClearBackground(BLACK);
 
                 int collectedMangoes = 0;
+                int livesRemaining = 0;
                 bool levelFailed = false;
                 bool quitToMenu = false;
                 bool levelRestarted = false;
@@ -101,6 +102,7 @@ int main(void)
                            mangoScale,
                            deltaTime,
                            collectedMangoes,
+                           livesRemaining,
                            levelFailed,
                            quitToMenu,
                            levelRestarted);
@@ -117,11 +119,12 @@ int main(void)
                 }
 
                 DrawLevelLabel(1);
+                int elapsedSeconds = static_cast<int>(GetTime() - levelStartTime);
                 if (!levelFailed) {
-                    int elapsedSeconds = static_cast<int>(GetTime() - levelStartTime);
                     DrawTimerLabel(elapsedSeconds);
                     DrawMangoCounter(collectedMangoes, GetLevel1TotalMangoCount());
                 }
+                DrawLives(livesRemaining);
 
                 EndDrawing();
                 break;

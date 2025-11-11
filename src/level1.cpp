@@ -9,7 +9,7 @@
 namespace
 {
 constexpr Color kPlatformColor{245, 245, 245, 255};
-constexpr Color kHighlightColor{120, 180, 120, 255};
+constexpr Color kHighlightColor{204, 173, 14, 255}; // mustard-yellow
 constexpr Color kIceColor{140, 200, 255, 255};
 constexpr Color kSpikeColor{220, 40, 40, 255};
 
@@ -94,6 +94,7 @@ struct LevelState {
     Vector2 spawn{};
     bool initialized = false;
     bool failed = false;
+    int lives = 2;
 };
 
 LevelState& GetLevelState()
@@ -118,6 +119,7 @@ void DrawLevel1(Texture2D cat,
                 float mangoScale,
                 float deltaTime,
                 int& collectedMangoes,
+                int& livesRemaining,
                 bool& levelFailed,
                 bool& quitToMenu,
                 bool& levelRestarted)
@@ -234,6 +236,7 @@ void DrawLevel1(Texture2D cat,
         levelState.spawn = catSpawn;
         levelState.initialized = true;
         levelState.failed = false;
+        levelState.lives = 2;
     }
     if (levelState.mangoes.size() != mangoPositions.size() || resetPressed || !levelState.initialized) {
         ResetMangoes(levelState, mangoPositions);
@@ -249,7 +252,7 @@ void DrawLevel1(Texture2D cat,
         200.0f,   // moveSpeed
         900.0f,   // gravity
         -420.0f,  // jumpVelocity
-        10.0f,     // collisionPadding
+        10.0f,    // collisionPadding
         2,        // maxJumps
         static_cast<float>(screenWidth),
         static_cast<float>(screenHeight)
@@ -263,23 +266,7 @@ void DrawLevel1(Texture2D cat,
 
     Rectangle catCollisionRect = PlayerControllerCollisionRect(catState, catWidth, catHeight, controllerConfig.collisionPadding);
 
-    bool hitHazard = false;
-    if (!levelState.failed) {
-        for (const Rectangle& hazard : spikeHazards) {
-            if (CheckCollisionRecs(catCollisionRect, hazard)) {
-                hitHazard = true;
-                break;
-            }
-        }
-    }
-
     int collectedCount = 0;
-    if (hitHazard) {
-        levelState.failed = true;
-        PlayerControllerReset(catState, levelState.spawn);
-        ResetMangoes(levelState, mangoPositions);
-        catCollisionRect = PlayerControllerCollisionRect(catState, catWidth, catHeight, controllerConfig.collisionPadding);
-    }
 
     for (auto& mangoState : levelState.mangoes) {
         if (mangoState.collected) {
@@ -293,6 +280,24 @@ void DrawLevel1(Texture2D cat,
             continue;
         }
         DrawTextureEx(mango, mangoState.position, 0.0f, mangoScale, WHITE);
+    }
+
+    if (!levelState.failed) {
+        bool tookDamage = false;
+        for (const Rectangle& hazard : spikeHazards) {
+            if (CheckCollisionRecs(catCollisionRect, hazard)) {
+                levelState.lives--;
+                PlayerControllerReset(catState, levelState.spawn);
+                if (levelState.lives <= 0) {
+                    levelState.failed = true;
+                }
+                tookDamage = true;
+                break;
+            }
+        }
+        if (tookDamage) {
+            catCollisionRect = PlayerControllerCollisionRect(catState, catWidth, catHeight, controllerConfig.collisionPadding);
+        }
     }
 
     DrawTextureEx(cat, catState.position, 0.0f, catScale, WHITE);
@@ -314,32 +319,37 @@ void DrawLevel1(Texture2D cat,
 
         if (IsKeyPressed(KEY_R)) {
             PlayerControllerReset(catState, levelState.spawn);
-            ResetMangoes(levelState, mangoPositions);
-            collectedCount = 0;
-            levelState.failed = false;
-            levelRestarted = true;
+                ResetMangoes(levelState, mangoPositions);
+                collectedCount = 0;
+                levelState.failed = false;
+                levelState.lives = 2;
+                levelRestarted = true;
+            livesRemaining = levelState.lives;
         } else if (IsKeyPressed(KEY_Q)) {
             quitToMenu = true;
             collectedMangoes = collectedCount;
             levelFailed = true;
+            livesRemaining = levelState.lives;
             return;
         }
 
         if (levelState.failed) {
             collectedMangoes = 0;
             levelFailed = true;
+            livesRemaining = levelState.lives;
             return;
         }
     }
 
     levelFailed = levelState.failed;
     collectedMangoes = collectedCount;
+    livesRemaining = levelState.lives;
 }
 
 int GetLevel1TotalMangoCount()
 {
     const LevelState& state = GetLevelState();
-    return static_cast<int>(state.mangoes.size());
+    return state.mangoes.empty() ? 2 : static_cast<int>(state.mangoes.size());
 }
 
 void ResetLevel1State()
