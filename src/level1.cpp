@@ -4,6 +4,8 @@
 #include <algorithm>
 #include <vector>
 
+#include "player_controller.h"
+
 namespace
 {
 constexpr Color kPlatformColor{245, 245, 245, 255};
@@ -69,20 +71,35 @@ void DrawSpikesDown(Vector2 start, int count, float width, float height)
 
 namespace
 {
-struct CatState {
+struct Collectible {
     Vector2 position{};
-    Vector2 velocity{};
-    bool grounded = false;
+    bool collected = false;
 };
 
-CatState& GetCatState()
+struct LevelState {
+    PlayerControllerState cat;
+    std::vector<Collectible> mangoes;
+    Vector2 spawn{};
+    bool initialized = false;
+};
+
+LevelState& GetLevelState()
 {
-    static CatState state;
+    static LevelState state;
     return state;
+}
+
+void ResetMangoes(LevelState& state, const std::vector<Vector2>& positions)
+{
+    state.mangoes.clear();
+    state.mangoes.reserve(positions.size());
+    for (const Vector2& pos : positions) {
+        state.mangoes.push_back({pos, false});
+    }
 }
 } // namespace
 
-void DrawLevel1(Texture2D cat, float catScale, Texture2D mango, float mangoScale, float deltaTime)
+void DrawLevel1(Texture2D cat, float catScale, Texture2D mango, float mangoScale, float deltaTime, int& collectedMangoes)
 {
     const int screenWidth = GetScreenWidth();
     const int screenHeight = GetScreenHeight();
@@ -95,14 +112,14 @@ void DrawLevel1(Texture2D cat, float catScale, Texture2D mango, float mangoScale
     platforms.reserve(12);
     platforms.push_back(groundRect);
 
+    std::vector<Vector2> mangoPositions;
+    mangoPositions.reserve(4);
+
     const float mangoHover = 18.0f;
     const float mangoWidth = static_cast<float>(mango.width) * mangoScale;
     const float mangoHeight = static_cast<float>(mango.height) * mangoScale;
-    float mangoX = static_cast<float>(screenWidth) * 0.88f;
-    float mangoY = groundRect.y - mangoHeight - mangoHover;
-
-    // --- Mango ---
-    DrawTextureEx(mango, Vector2{mangoX, mangoY}, 0.0f, mangoScale, WHITE);
+    mangoPositions.push_back(Vector2{static_cast<float>(screenWidth) * 0.88f,
+                                     groundRect.y - mangoHeight - mangoHover});
 
     // --- Bottom highlight bar (green rectangle) ---
     const Rectangle greenCoreRect{
@@ -138,9 +155,9 @@ void DrawLevel1(Texture2D cat, float catScale, Texture2D mango, float mangoScale
     platforms.push_back(platformRect3);
 
     // -- Another Mango --
-    mangoX = static_cast<float>(screenWidth) * 0.60f;
-    mangoY = platformRect3.y - 2 * platformRect3.height - mangoHover;
-    DrawTextureEx(mango, Vector2{mangoX, mangoY}, 0.0f, mangoScale, WHITE);
+    mangoPositions.push_back(Vector2{
+        static_cast<float>(screenWidth) * 0.60f,
+        platformRect3.y - 2 * platformRect3.height - mangoHover});
 
     // -- Bottom Vertical Spikes --
     DrawSideSpikesLeft(Vector2{static_cast<float>(screenWidth), groundRect.y - 11*30.0f}, 11, 30.0f); // match horizontal spike size
@@ -178,74 +195,63 @@ void DrawLevel1(Texture2D cat, float catScale, Texture2D mango, float mangoScale
     platforms.push_back(platformRect6);
 
     // --- Player spawn ---
-    CatState& catState = GetCatState();
+    LevelState& levelState = GetLevelState();
+    PlayerControllerState& catState = levelState.cat;
     const float catWidth = static_cast<float>(cat.width) * catScale;
     const float catHeight = static_cast<float>(cat.height) * catScale;
     const Vector2 catSpawn{40.0f, groundRect.y - catHeight};
-    if (IsKeyPressed(KEY_R)) {
-        catState.position = catSpawn;
-        catState.velocity = {0.0f, 0.0f};
-        catState.grounded = true;
+    const bool resetPressed = IsKeyPressed(KEY_R);
+    if (resetPressed || !levelState.initialized) {
+        PlayerControllerReset(catState, catSpawn);
+        levelState.spawn = catSpawn;
+        levelState.initialized = true;
     }
-    if (catState.position.y == 0.0f && catState.position.x == 0.0f) {
-        catState.position = catSpawn;
-        catState.grounded = true;
-    }
-
-    const float moveSpeed = 200.0f;
-    float desiredX = catState.position.x;
-    if (IsKeyDown(KEY_RIGHT) || IsKeyDown(KEY_D)) {
-        desiredX += moveSpeed * deltaTime;
-    }
-    if (IsKeyDown(KEY_LEFT) || IsKeyDown(KEY_A)) {
-        desiredX -= moveSpeed * deltaTime;
-    }
-    const float collisionPadding = 10.0f;
-    Rectangle horizontalRect{desiredX + collisionPadding,
-                             catState.position.y + collisionPadding,
-                             catWidth - collisionPadding * 2.0f,
-                             catHeight - collisionPadding * 2.0f};
-    for (const auto& platform : platforms) {
-        if (CheckCollisionRecs(horizontalRect, platform)) {
-            if (desiredX > catState.position.x) {
-                desiredX = platform.x - catWidth + collisionPadding;
-                horizontalRect.x = desiredX + collisionPadding;
-            } else {
-                desiredX = platform.x + platform.width - collisionPadding;
-                horizontalRect.x = desiredX + collisionPadding;
+    if (levelState.mangoes.size() != mangoPositions.size() || resetPressed || !levelState.initialized) {
+        ResetMangoes(levelState, mangoPositions);
+    } else {
+        for (size_t i = 0; i < mangoPositions.size() && i < levelState.mangoes.size(); ++i) {
+            if (!levelState.mangoes[i].collected) {
+                levelState.mangoes[i].position = mangoPositions[i];
             }
         }
     }
-    catState.position.x = std::clamp(desiredX, 0.0f, static_cast<float>(screenWidth) - catWidth);
 
-    const float gravity = 900.0f;
-    const float jumpVelocity = -420.0f;
-    catState.velocity.y += gravity * deltaTime;
-    if (catState.grounded && IsKeyPressed(KEY_UP)) {
-        catState.velocity.y = jumpVelocity;
-        catState.grounded = false;
-    }
-    float desiredY = catState.position.y + catState.velocity.y * deltaTime;
-    Rectangle verticalRect{catState.position.x + collisionPadding,
-                            desiredY + collisionPadding,
-                            catWidth - collisionPadding * 2.0f,
-                            catHeight - collisionPadding * 2.0f};
-    catState.grounded = false;
-    for (const auto& platform : platforms) {
-        if (CheckCollisionRecs(verticalRect, platform)) {
-            if (desiredY > catState.position.y) {
-                desiredY = platform.y - catHeight + collisionPadding;
-                verticalRect.y = desiredY + collisionPadding;
-                catState.velocity.y = 0.0f;
-                catState.grounded = true;
-            } else {
-                desiredY = platform.y + platform.height - collisionPadding;
-                verticalRect.y = desiredY + collisionPadding;
-                catState.velocity.y = 0.0f;
-            }
+    const PlayerControllerConfig controllerConfig{
+        200.0f,   // moveSpeed
+        900.0f,   // gravity
+        -420.0f,  // jumpVelocity
+        10.0f,    // collisionPadding
+        2,        // maxJumps
+        static_cast<float>(screenWidth),
+        static_cast<float>(screenHeight)
+    };
+
+    PlayerControllerUpdate(catState, deltaTime, platforms, catWidth, catHeight, controllerConfig);
+
+    Rectangle catCollisionRect = PlayerControllerCollisionRect(catState, catWidth, catHeight, controllerConfig.collisionPadding);
+
+    int collectedCount = 0;
+    for (auto& mangoState : levelState.mangoes) {
+        if (mangoState.collected) {
+            collectedCount++;
+            continue;
         }
+        Rectangle mangoRect{mangoState.position.x, mangoState.position.y, mangoWidth, mangoHeight};
+        if (CheckCollisionRecs(catCollisionRect, mangoRect)) {
+            mangoState.collected = true;
+            collectedCount++;
+            continue;
+        }
+        DrawTextureEx(mango, mangoState.position, 0.0f, mangoScale, WHITE);
     }
-    catState.position.y = desiredY;
+
+    collectedMangoes = collectedCount;
 
     DrawTextureEx(cat, catState.position, 0.0f, catScale, WHITE);
+}
+
+int GetLevel1TotalMangoCount()
+{
+    const LevelState& state = GetLevelState();
+    return static_cast<int>(state.mangoes.size());
 }

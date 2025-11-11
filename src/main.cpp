@@ -87,10 +87,13 @@ int main(void)
                 BeginDrawing();
                 ClearBackground(BLACK);
 
-                DrawLevel1(cat, catScale, mango, mangoScale, GetFrameTime());
+                int collectedMangoes = 0;
+                const float deltaTime = GetFrameTime();
+                DrawLevel1(cat, catScale, mango, mangoScale, deltaTime, collectedMangoes);
                 DrawLevelLabel(1);
                 int elapsedSeconds = static_cast<int>(GetTime() - levelStartTime);
                 DrawTimerLabel(elapsedSeconds);
+                DrawMangoCounter(collectedMangoes, GetLevel1TotalMangoCount());
 
                 EndDrawing();
                 break;

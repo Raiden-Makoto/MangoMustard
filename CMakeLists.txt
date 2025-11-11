@@ -26,6 +26,7 @@ add_executable(${PROJECT_NAME}
     src/levelselect.cpp
     src/level1.cpp
     src/hud.cpp
+    src/player_controller.cpp
 )
 
 target_include_directories(${PROJECT_NAME} PRIVATE ${RAYLIB_INCLUDE_DIR})

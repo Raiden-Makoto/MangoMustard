@@ -18,3 +18,14 @@ void DrawTimerLabel(int elapsedSeconds)
     const int padding = 16;
     DrawText(timerLabel, GetScreenWidth() - textWidth - padding, padding, fontSize, YELLOW);
 }
+
+void DrawMangoCounter(int collected, int total)
+{
+    const char *counterLabel = TextFormat("Mangoes %d/%d", collected, total);
+    const int fontSize = 22;
+    const int padding = 16;
+    const int timerSpacing = 32;
+    const int verticalOffset = padding + timerSpacing + 8;
+    const int textWidth = MeasureText(counterLabel, fontSize);
+    DrawText(counterLabel, GetScreenWidth() - textWidth - padding, verticalOffset, fontSize, YELLOW);
+}
