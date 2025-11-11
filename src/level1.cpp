@@ -249,7 +249,7 @@ void DrawLevel1(Texture2D cat,
         200.0f,   // moveSpeed
         900.0f,   // gravity
         -420.0f,  // jumpVelocity
-        10.0f,    // collisionPadding
+        10.0f,     // collisionPadding
         2,        // maxJumps
         static_cast<float>(screenWidth),
         static_cast<float>(screenHeight)
