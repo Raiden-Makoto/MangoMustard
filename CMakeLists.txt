@@ -22,14 +22,14 @@ endif ()
 
 add_executable(${PROJECT_NAME}
     src/main.cpp
-    src/titlescreen.cpp
-    src/levelselect.cpp
-    src/level1.cpp
-    src/hud.cpp
-    src/player_controller.cpp
+    src/ui/titlescreen.cpp
+    src/ui/levelselect.cpp
+    src/ui/hud.cpp
+    src/levels/level1.cpp
+    src/core/player_controller.cpp
 )
 
-target_include_directories(${PROJECT_NAME} PRIVATE ${RAYLIB_INCLUDE_DIR})
+target_include_directories(${PROJECT_NAME} PRIVATE ${RAYLIB_INCLUDE_DIR} src)
 
 target_link_libraries(${PROJECT_NAME} PRIVATE ${RAYLIB_LIBRARY})
 

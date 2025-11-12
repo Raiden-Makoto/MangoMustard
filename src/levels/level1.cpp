@@ -4,7 +4,7 @@
 #include <algorithm>
 #include <vector>
 
-#include "player_controller.h"
+#include "../core/player_controller.h"
 
 namespace
 {

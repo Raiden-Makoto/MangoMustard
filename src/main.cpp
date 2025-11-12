@@ -1,8 +1,8 @@
 #include <raylib.h>
 
-#include "level1.h"
-#include "levelselect.h"
-#include "hud.h"
+#include "levels/level1.h"
+#include "ui/levelselect.h"
+#include "ui/hud.h"
 
 void DrawTitleScreen();
 
