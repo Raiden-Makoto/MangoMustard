@@ -214,19 +214,28 @@ void DrawLevel1(Texture2D cat,
         platformRect3.y - 2 * platformRect3.height - mangoHover});
 
     // -- Bottom Vertical Spikes --
-    DrawSideSpikesLeft(Vector2{static_cast<float>(screenWidth), groundRect.y - 11*30.0f}, 11, 30.0f, &spikeHazards); // match horizontal spike size
+    DrawSideSpikesLeft(Vector2{static_cast<float>(screenWidth), groundRect.y - 11*30.0f}, 11, 30.0f, &spikeHazards);
 
     // -- Third Row Platforms --
     distFromTop -= static_cast<float>(screenHeight) * 0.15f; // 720 * 0.05 = 36 px
-    const Rectangle platformRect4{0, distFromTop, static_cast<float>(screenWidth) * 0.85f, platformHeight};
-    DrawRect(platformRect4,kPlatformColor);
-    platforms.push_back(platformRect4);
+    const Rectangle platformRect4a{static_cast<float>(screenWidth) * 0.20f, distFromTop, static_cast<float>(screenWidth) * 0.60f, platformHeight};
+    DrawRect(platformRect4a,kPlatformColor);
+    platforms.push_back(platformRect4a);
+
+    const Rectangle platformRect4b{0, distFromTop, static_cast<float>(screenWidth) * 0.10f, platformHeight};
+    DrawRect(platformRect4b,kIceColor);
+    platforms.push_back(platformRect4b);
+    levelState.icyPlatforms.push_back(platformRect4b);
+
+    mangoPositions.push_back(Vector2{
+        static_cast<float>(screenWidth) * 0.88f,
+        platformRect4b.y + platformHeight + mangoHover});
 
     // -- Third Row Left-Side Spikes --
     DrawSideSpikesRight(Vector2{0.0f, distFromTop - 6*30.0f}, 6, 30.0f, &spikeHazards);
     
     // -- Third Row Right-Side Spikes --
-    DrawSideSpikesLeft(Vector2{static_cast<float>(screenWidth), distFromTop - 3*30.0f}, 3, 30.0f, &spikeHazards); 
+    DrawSideSpikesLeft(Vector2{static_cast<float>(screenWidth), distFromTop - 5*30.0f}, 5, 30.0f, &spikeHazards); 
 
     // -- Third Row Vertical Spikes --
     DrawSpikeRow(Vector2{static_cast<float>(screenWidth) * 0.30f, distFromTop}, 3, 30.0f, 30.0f, &spikeHazards);
@@ -237,6 +246,38 @@ void DrawLevel1(Texture2D cat,
     const Rectangle platformRect5{0, distFromTop - platformHeight - 2 * 30.0f, static_cast<float>(screenWidth) * 0.28f, platformHeight};
     DrawRect(platformRect5,kPlatformColor);
     platforms.push_back(platformRect5);
+
+    const Rectangle platformRect5b{
+        static_cast<float>(screenWidth) * 0.65f,
+        distFromTop - platformHeight - 30.0f,
+        static_cast<float>(screenWidth) * 0.15f,
+        platformHeight
+    };
+    DrawRect(platformRect5b,kPlatformColor);
+    platforms.push_back(platformRect5b);
+    platforms.push_back(platformRect5b);
+
+    const Rectangle platformRect5c{
+        static_cast<float>(screenWidth) * 0.80f,
+        distFromTop - platformHeight - 30.0f,
+        static_cast<float>(screenWidth) * 0.20f,
+        platformHeight
+    };
+    DrawRect(platformRect5c,kHighlightColor);
+    mustardHazards.push_back(platformRect5c);
+
+    const Rectangle platformRect5d{
+        static_cast<float>(screenWidth) * 0.95f,
+        distFromTop - platformHeight - 30.0f,
+        static_cast<float>(screenWidth) * 0.05f,
+        platformHeight
+    };
+    DrawRect(platformRect5d,kPlatformColor);
+    platforms.push_back(platformRect5d);
+
+    mangoPositions.push_back(Vector2{
+        static_cast<float>(screenWidth) * 0.95f,
+        platformRect5d.y - platformHeight - 2 * mangoHover});
 
     // 3.5fth Row Platform -- 
     const Rectangle platformRect6{
@@ -323,6 +364,7 @@ void DrawLevel1(Texture2D cat,
             if (CheckCollisionRecs(catCollisionRect, hazard)) {
                 levelState.lives--;
                 PlayerControllerReset(catState, levelState.spawn);
+                catState.inputLockTimer = 2.0;
                 if (levelState.lives <= 0) {
                     levelState.failed = true;
                 }

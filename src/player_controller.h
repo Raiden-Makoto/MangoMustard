@@ -10,6 +10,7 @@ struct PlayerControllerState {
     int jumpsUsed = 0;
     float horizontalVelocity = 0.0f;
     bool onIce = false;
+    double inputLockTimer = 0.0;
 };
 
 struct PlayerControllerConfig {

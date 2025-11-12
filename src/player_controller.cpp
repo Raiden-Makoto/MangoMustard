@@ -10,6 +10,7 @@ void PlayerControllerReset(PlayerControllerState& state, Vector2 spawn)
     state.jumpsUsed = 0;
     state.horizontalVelocity = 0.0f;
     state.onIce = false;
+    state.inputLockTimer = 0.0;
 }
 
 void PlayerControllerUpdate(PlayerControllerState& state,
@@ -19,20 +20,30 @@ void PlayerControllerUpdate(PlayerControllerState& state,
                             float spriteHeight,
                             const PlayerControllerConfig& config)
 {
-    const bool jumpRequested = IsKeyPressed(KEY_UP);
-    float moveInput = 0.0f;
-    if (IsKeyDown(KEY_RIGHT) || IsKeyDown(KEY_D)) {
-        moveInput += 1.0f;
+    if (state.inputLockTimer > 0.0f) {
+        state.inputLockTimer -= deltaTime;
+        if (state.inputLockTimer < 0.0f) {
+            state.inputLockTimer = 0.0f;
+        }
     }
-    if (IsKeyDown(KEY_LEFT) || IsKeyDown(KEY_A)) {
-        moveInput -= 1.0f;
+
+    const bool jumpRequested = (state.inputLockTimer <= 0.0f) && IsKeyPressed(KEY_UP);
+
+    float moveInput = 0.0f;
+    if (state.inputLockTimer <= 0.0f) {
+        if (IsKeyDown(KEY_RIGHT) || IsKeyDown(KEY_D)) {
+            moveInput += 1.0f;
+        }
+        if (IsKeyDown(KEY_LEFT) || IsKeyDown(KEY_A)) {
+            moveInput -= 1.0f;
+        }
     }
 
     const bool noInput = (moveInput == 0.0f);
     if (!noInput) {
         state.horizontalVelocity = moveInput * config.moveSpeed;
     } else {
-        if (state.onIce || !state.grounded || jumpRequested) {
+        if (state.onIce || !state.grounded) {
             // retain momentum on ice or while airborne
         } else {
             state.horizontalVelocity = 0.0f;
@@ -66,7 +77,8 @@ void PlayerControllerUpdate(PlayerControllerState& state,
 
     bool wasGrounded = state.grounded;
     bool wasOnIce = state.onIce;
-    bool canJump = (state.jumpsUsed < config.maxJumps) &&
+    bool canJump = (state.inputLockTimer <= 0.0f) &&
+                   (state.jumpsUsed < config.maxJumps) &&
                    (!wasGrounded || !wasOnIce);
 
     if (jumpRequested && canJump) {
