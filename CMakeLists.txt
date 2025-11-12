@@ -25,8 +25,10 @@ add_executable(${PROJECT_NAME}
     src/ui/titlescreen.cpp
     src/ui/levelselect.cpp
     src/ui/hud.cpp
-    src/levels/level1.cpp
+    src/levels/level1/level1.cpp
+    src/levels/level2/level2.cpp
     src/core/player_controller.cpp
+    src/core/level_helpers.cpp
 )
 
 target_include_directories(${PROJECT_NAME} PRIVATE ${RAYLIB_INCLUDE_DIR} src)

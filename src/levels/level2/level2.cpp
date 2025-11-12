@@ -1,145 +1,48 @@
-#include "level1.h"
+#include "level2.h"
 
 #include <raylib.h>
 #include <algorithm>
 #include <vector>
 
-#include "../core/player_controller.h"
+#include "core/player_controller.h"
+#include "core/level_helpers.h"
 
 namespace
 {
-constexpr Color kPlatformColor{245, 245, 245, 255};
-constexpr Color kHighlightColor{204, 173, 14, 255}; // mustard-yellow
-constexpr Color kIceColor{140, 200, 255, 255};
-constexpr Color kSpikeColor{220, 40, 40, 255};
-constexpr Color kEndGoalColor{0, 255, 128, 255};
+    struct LevelState
+    {
+        PlayerControllerState cat;
+        std::vector<Collectible> mangoes;
+        Vector2 spawn{};
+        bool initialized = false;
+        bool failed = false;
+        int lives = 2;
+        std::vector<Rectangle> icyPlatforms;
+    };
 
-// Draws a solid rectangle representing a platform or highlight strip.
-void DrawRect(Rectangle rect, Color color)
-{
-    DrawRectangleRec(rect, color);
-}
-
-// Renders a horizontal row of triangular spikes resting on the baseline at `base.y`.
-// `count` controls how many spikes, `width` the footprint of each spike, and `height` their peak.
-void DrawSpikeRow(Vector2 base, int count, float width, float height, std::vector<Rectangle>* hazardRects = nullptr)
-{
-    for (int i = 0; i < count; ++i) {
-        const float offset = i * width;
-        Vector2 p1{base.x + offset, base.y};
-        Vector2 p2{base.x + offset + width * 0.5f, base.y - height};
-        Vector2 p3{base.x + offset + width, base.y};
-        DrawTriangleLines(p1, p2, p3, kSpikeColor);
-        if (hazardRects != nullptr) {
-            hazardRects->push_back(Rectangle{base.x + offset, base.y - height, width, height});
-        }
+    LevelState &GetLevelState()
+    {
+        static LevelState state;
+        return state;
     }
-}
 
-// Draws a vertical column of spikes pointing leftwards, for the right wall hazard.
-void DrawSideSpikesLeft(Vector2 start, int count, float size, std::vector<Rectangle>* hazardRects = nullptr)
-{
-    for (int i = 0; i < count; ++i) {
-        const float offset = i * size;
-        Vector2 p1{start.x, start.y + offset};
-        Vector2 p2{start.x - size, start.y + offset + size * 0.5f};
-        Vector2 p3{start.x, start.y + offset + size};
-        DrawTriangleLines(p1, p2, p3, kSpikeColor);
-        if (hazardRects != nullptr) {
-            hazardRects->push_back(Rectangle{start.x - size, start.y + offset, size, size});
-        }
+    void ResetMangoes(LevelState &state, const std::vector<Vector2> &positions)
+    {
+        ResetCollectibles(state.mangoes, positions);
     }
-}
-
-void DrawSideSpikesRight(Vector2 start, int count, float size, std::vector<Rectangle>* hazardRects = nullptr)
-{
-    for (int i = 0; i < count; ++i) {
-        const float offset = i * size;
-        Vector2 p1{start.x, start.y + offset};
-        Vector2 p2{start.x + size, start.y + offset + size * 0.5f};
-        Vector2 p3{start.x, start.y + offset + size};
-        DrawTriangleLines(p1, p2, p3, kSpikeColor);
-        if (hazardRects != nullptr) {
-            hazardRects->push_back(Rectangle{start.x, start.y + offset, size, size});
-        }
-    }
-}
-
-// Draws a row of downward-pointing spikes along a platform ceiling.
-void DrawSpikesDown(Vector2 start, int count, float width, float height, std::vector<Rectangle>* hazardRects = nullptr)
-{
-    for (int i = 0; i < count; ++i) {
-        const float offset = i * width;
-        Vector2 p1{start.x + offset, start.y};
-        Vector2 p2{start.x + offset + width, start.y};
-        Vector2 p3{start.x + offset + width * 0.5f, start.y + height};
-        DrawTriangleLines(p1, p2, p3, kSpikeColor);
-        if (hazardRects != nullptr) {
-            hazardRects->push_back(Rectangle{start.x + offset, start.y, width, height});
-        }
-    }
-}
-
-float OverlapWidth(const Rectangle& a, const Rectangle& b)
-{
-    float left = std::max(a.x, b.x);
-    float right = std::min(a.x + a.width, b.x + b.width);
-    return right - left;
-}
-
-float OverlapHeight(const Rectangle& a, const Rectangle& b)
-{
-    float top = std::max(a.y, b.y);
-    float bottom = std::min(a.y + a.height, b.y + b.height);
-    return bottom - top;
-}
-
 } // namespace
 
-namespace
-{
-struct Collectible {
-    Vector2 position{};
-    bool collected = false;
-};
-
-struct LevelState {
-    PlayerControllerState cat;
-    std::vector<Collectible> mangoes;
-    Vector2 spawn{};
-    bool initialized = false;
-    bool failed = false;
-    int lives = 2;
-    std::vector<Rectangle> icyPlatforms;
-};
-
-LevelState& GetLevelState()
-{
-    static LevelState state;
-    return state;
-}
-
-void ResetMangoes(LevelState& state, const std::vector<Vector2>& positions)
-{
-    state.mangoes.clear();
-    state.mangoes.reserve(positions.size());
-    for (const Vector2& pos : positions) {
-        state.mangoes.push_back({pos, false});
-    }
-}
-} // namespace
-
-void DrawLevel1(Texture2D cat,
+void DrawLevel2(Texture2D cat,
                 float catScale,
                 Texture2D mango,
                 float mangoScale,
                 float deltaTime,
-                int& collectedMangoes,
-                int& livesRemaining,
-                bool& levelFailed,
-                bool& quitToMenu,
-                bool& levelRestarted,
-                bool& levelCompleted)
+                int &collectedMangoes,
+                int &livesRemaining,
+                bool &levelFailed,
+                bool &quitToMenu,
+                bool &levelRestarted,
+                bool &levelCompleted)
 {
     const int screenWidth = GetScreenWidth();
     const int screenHeight = GetScreenHeight();
@@ -327,81 +230,49 @@ void DrawLevel1(Texture2D cat,
 
     // 3.5fth Row Platform -- 
     const Rectangle platformRect6{
-        static_cast<float>(screenWidth) * 0.37f,
-        distFromTop + platformHeight,
-        static_cast<float>(screenWidth) * 0.15f,
+        static_cast<float>(screenWidth) * 0.50f,
+        distFromTop - platformHeight - 60.0f,
+        static_cast<float>(screenWidth) * 0.30f,
         platformHeight
     };
     DrawRect(platformRect6,kPlatformColor);
     platforms.push_back(platformRect6);
 
-    mangoPositions.push_back(Vector2{
-        platformRect6.x + platformRect6.width * 0.35f,
-        platformRect6.y - platformHeight - 2 * mangoHover});
-
-    // End Goal (move to next level)
-    const float endGoalHeight = static_cast<float>(screenHeight) * 0.15f;
+    // End goal
     const Rectangle endGoalRect{
-        0.0,
-        distFromTop - platformHeight - 2 * 30.0f - endGoalHeight,
-        static_cast<float>(screenWidth) * 0.15f,
-        endGoalHeight
+        static_cast<float>(screenWidth) * 0.92f,
+        distFromTop - platformHeight - 100.0f,
+        static_cast<float>(screenWidth) * 0.07f,
+        static_cast<float>(screenHeight) * 0.15f
     };
     DrawRectangleLinesEx(endGoalRect, 4.0f, kEndGoalColor);
-    const int goalNumberFont = 32;
-    const char* goalNumberText = "67";
-    const int goalNumberWidth = MeasureText(goalNumberText, goalNumberFont);
-    const float goalNumberX = endGoalRect.x + (endGoalRect.width - goalNumberWidth) * 0.5f;
-    const float goalNumberY = endGoalRect.y + (endGoalRect.height - goalNumberFont) * 0.5f;
-    DrawText(goalNumberText,
-             static_cast<int>(goalNumberX),
-             static_cast<int>(goalNumberY),
-             goalNumberFont,
-             Color{0, 255, 0, 255});
 
-    // --- Player spawn ---
-    PlayerControllerState& catState = levelState.cat;
-    const float catWidth = static_cast<float>(cat.width) * catScale;
-    const float catHeight = static_cast<float>(cat.height) * catScale;
-    const Vector2 catSpawn{40.0f, groundRect.y - catHeight};
-    levelFailed = levelState.failed;
-    quitToMenu = false;
-    levelRestarted = false;
-
-    const bool resetPressed = IsKeyPressed(KEY_R);
-    if (resetPressed || !levelState.initialized) {
-        PlayerControllerReset(catState, catSpawn);
-        levelState.spawn = catSpawn;
+    if (!levelState.initialized) {
+        levelState.spawn = Vector2{static_cast<float>(cat.width) * catScale * 0.5f,
+                                   groundRect.y - static_cast<float>(cat.height) * catScale};
+        PlayerControllerReset(levelState.cat, levelState.spawn);
+        ResetMangoes(levelState, mangoPositions);
         levelState.initialized = true;
         levelState.failed = false;
         levelState.lives = 2;
     }
-    if (levelState.mangoes.size() != mangoPositions.size() || resetPressed || !levelState.initialized) {
-        ResetMangoes(levelState, mangoPositions);
-    } else {
-        for (size_t i = 0; i < mangoPositions.size() && i < levelState.mangoes.size(); ++i) {
-            if (!levelState.mangoes[i].collected) {
-                levelState.mangoes[i].position = mangoPositions[i];
-            }
-        }
-    }
 
-    const PlayerControllerConfig controllerConfig{
-        200.0f,   // moveSpeed
-        900.0f,   // gravity
-        -420.0f,  // jumpVelocity
-        10.0f,    // collisionPadding
-        2,        // maxJumps
-        static_cast<float>(screenWidth),
-        static_cast<float>(screenHeight),
-        &levelState.icyPlatforms
-    };
+    PlayerControllerState& catState = levelState.cat;
 
-    if (!levelState.failed) {
-        PlayerControllerUpdate(catState, deltaTime, platforms, catWidth, catHeight, controllerConfig);
-    } else {
-        catState.velocity = {0.0f, 0.0f};
-    }
+    const float catWidth = static_cast<float>(cat.width) * catScale;
+    const float catHeight = static_cast<float>(cat.height) * catScale;
+
+    PlayerControllerConfig controllerConfig;
+    controllerConfig.moveSpeed = 200.0f;
+    controllerConfig.gravity = 800.0f;
+    controllerConfig.jumpVelocity = -400.0f;
+    controllerConfig.collisionPadding = 5.0f;
+    controllerConfig.maxJumps = 2;
+    controllerConfig.screenWidth = static_cast<float>(screenWidth);
+    controllerConfig.screenHeight = static_cast<float>(screenHeight);
+    controllerConfig.icyPlatforms = &levelState.icyPlatforms;
+
+    PlayerControllerUpdate(catState, deltaTime, platforms, catWidth, catHeight, controllerConfig);
 
     Rectangle catCollisionRect = PlayerControllerCollisionRect(catState, catWidth, catHeight, controllerConfig.collisionPadding);
 
@@ -540,13 +411,13 @@ void DrawLevel1(Texture2D cat,
     levelCompleted = goalReached;
 }
 
-int GetLevel1TotalMangoCount()
+int GetLevel2TotalMangoCount()
 {
     const LevelState& state = GetLevelState();
     return state.mangoes.empty() ? 2 : static_cast<int>(state.mangoes.size());
 }
 
-void ResetLevel1State()
+void ResetLevel2State()
 {
     LevelState& state = GetLevelState();
     state = LevelState{};

@@ -1,6 +1,7 @@
 #include <raylib.h>
 
-#include "levels/level1.h"
+#include "levels/level1/level1.h"
+#include "levels/level2/level2.h"
 #include "ui/levelselect.h"
 #include "ui/hud.h"
 
@@ -39,25 +40,27 @@ int main(void)
     };
 
     ResetLevel1State();
+    ResetLevel2State();
 
     enum class GameState {
         Title,
         LevelSelect,
         Level1,
+        Level2,
         LevelComplete
     };
 
-    constexpr bool kDebugStartInLevel1 = true;
-    GameState state = kDebugStartInLevel1 ? GameState::Level1 : GameState::Title;
+    constexpr bool kDebugStartInLevel2 = true;
+    GameState state = kDebugStartInLevel2 ? GameState::Level2 : GameState::Title;
     double levelStartTime = GetTime();
-    int currentLevel = 1;
+    int currentLevel = 2;
     int lastLevelElapsedSeconds = 0;
     int lastLevelCollectedMangoes = 0;
     int lastLevelTotalMangoes = 0;
 
     LevelData levels[10] = {};
     for (int i = 0; i < 10; ++i) {
-        levels[i].unlocked = (i == 0); // Only level 1 unlocked by default
+        levels[i].unlocked = (i == 0 || i == 1); // Levels 1 and 2 unlocked for debugging
     }
 
     int selectedLevel = 1;
@@ -143,6 +146,61 @@ int main(void)
                         levels[currentLevel].unlocked = true;
                     }
                     ResetLevel1State();
+                    state = GameState::LevelComplete;
+                }
+                break;
+            }
+            case GameState::Level2: {
+                BeginDrawing();
+                ClearBackground(BLACK);
+
+                int collectedMangoes = 0;
+                int livesRemaining = 0;
+                bool levelFailed = false;
+                bool quitToMenu = false;
+                bool levelRestarted = false;
+                bool levelCompletedFlag = false;
+                const float deltaTime = GetFrameTime();
+                DrawLevel2(cat,
+                           catScale,
+                           mango,
+                           mangoScale,
+                           deltaTime,
+                           collectedMangoes,
+                           livesRemaining,
+                           levelFailed,
+                           quitToMenu,
+                           levelRestarted,
+                           levelCompletedFlag);
+
+                if (levelRestarted) {
+                    levelStartTime = GetTime();
+                }
+
+                DrawLevelLabel(currentLevel);
+                int elapsedSeconds = static_cast<int>(GetTime() - levelStartTime);
+                if (!levelFailed) {
+                    DrawTimerLabel(elapsedSeconds);
+                    DrawMangoCounter(collectedMangoes, GetLevel2TotalMangoCount());
+                }
+                DrawLives(livesRemaining);
+
+                EndDrawing();
+
+                if (quitToMenu) {
+                    ResetLevel2State();
+                    state = GameState::LevelSelect;
+                    break;
+                }
+
+                if (levelCompletedFlag) {
+                    lastLevelElapsedSeconds = elapsedSeconds;
+                    lastLevelCollectedMangoes = collectedMangoes;
+                    lastLevelTotalMangoes = GetLevel2TotalMangoCount();
+                    if (currentLevel < 10) {
+                        levels[currentLevel].unlocked = true;
+                    }
+                    ResetLevel2State();
                     state = GameState::LevelComplete;
                 }
                 break;
