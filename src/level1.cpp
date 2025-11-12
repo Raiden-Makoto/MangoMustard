@@ -146,6 +146,15 @@ void DrawLevel1(Texture2D cat,
 
     levelCompleted = false;
 
+    const char* topInstruction = "Reach the goal to advance";
+    const int topInstructionFont = 26;
+    const int topInstructionWidth = MeasureText(topInstruction, topInstructionFont);
+    DrawText(topInstruction,
+             (screenWidth - topInstructionWidth) / 2,
+             12,
+             topInstructionFont,
+             Color{255, 230, 0, 255});
+
     // --- Ground strip at bottom ---
     const float groundHeight = static_cast<float>(screenHeight) * 0.05f; // 720 * 0.05 = 36 px tall
     const Rectangle groundRect{0.0f, static_cast<float>(screenHeight) - groundHeight, static_cast<float>(screenWidth), groundHeight}; // y = 720 - 36 = 684
@@ -339,6 +348,16 @@ void DrawLevel1(Texture2D cat,
         endGoalHeight
     };
     DrawRectangleLinesEx(endGoalRect, 4.0f, kEndGoalColor);
+    const int goalNumberFont = 32;
+    const char* goalNumberText = "67";
+    const int goalNumberWidth = MeasureText(goalNumberText, goalNumberFont);
+    const float goalNumberX = endGoalRect.x + (endGoalRect.width - goalNumberWidth) * 0.5f;
+    const float goalNumberY = endGoalRect.y + (endGoalRect.height - goalNumberFont) * 0.5f;
+    DrawText(goalNumberText,
+             static_cast<int>(goalNumberX),
+             static_cast<int>(goalNumberY),
+             goalNumberFont,
+             Color{0, 255, 0, 255});
 
     // --- Player spawn ---
     PlayerControllerState& catState = levelState.cat;
