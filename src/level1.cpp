@@ -12,6 +12,7 @@ constexpr Color kPlatformColor{245, 245, 245, 255};
 constexpr Color kHighlightColor{204, 173, 14, 255}; // mustard-yellow
 constexpr Color kIceColor{140, 200, 255, 255};
 constexpr Color kSpikeColor{220, 40, 40, 255};
+constexpr Color kEndGoalColor{0, 255, 128, 255};
 
 // Draws a solid rectangle representing a platform or highlight strip.
 void DrawRect(Rectangle rect, Color color)
@@ -137,10 +138,13 @@ void DrawLevel1(Texture2D cat,
                 int& livesRemaining,
                 bool& levelFailed,
                 bool& quitToMenu,
-                bool& levelRestarted)
+                bool& levelRestarted,
+                bool& levelCompleted)
 {
     const int screenWidth = GetScreenWidth();
     const int screenHeight = GetScreenHeight();
+
+    levelCompleted = false;
 
     // --- Ground strip at bottom ---
     const float groundHeight = static_cast<float>(screenHeight) * 0.05f; // 720 * 0.05 = 36 px tall
@@ -169,6 +173,8 @@ void DrawLevel1(Texture2D cat,
     mangoPositions.push_back(Vector2{static_cast<float>(screenWidth) * 0.88f,
                                      groundRect.y - mangoHeight - mangoHover});
 
+    const Vector2 groundMangoPos = mangoPositions.front();
+
     // --- Bottom highlight bar (green rectangle) ---
     const Rectangle greenCoreRect{
         static_cast<float>(screenHeight) * 0.600f,  // 720 * 0.6 = 432 px from left
@@ -177,6 +183,14 @@ void DrawLevel1(Texture2D cat,
         groundHeight, // 36 px tall
     };
     DrawRect(greenCoreRect, kHighlightColor);
+    const char* mustardWarning = "Mustard kills you";
+    const int warningFontSize = 22;
+    const int warningWidth = MeasureText(mustardWarning, warningFontSize);
+    DrawText(mustardWarning,
+             static_cast<int>(greenCoreRect.x + (greenCoreRect.width - warningWidth) * 0.5f),
+             static_cast<int>(greenCoreRect.y - warningFontSize - 8),
+             warningFontSize,
+             kHighlightColor);
     mustardHazards.push_back(Rectangle{
         greenCoreRect.x,
         groundRect.y - 16.0f,
@@ -186,6 +200,14 @@ void DrawLevel1(Texture2D cat,
     
     // --- Floor spike clusters ---
     DrawSpikeRow(Vector2{groundRect.x + 140.0f, groundRect.y}, 3, 28.0f, 30.0f, &spikeHazards);
+    const char* spikeWarning = "Spikes take 1 life";
+    const int spikeWarningFontSize = 22;
+    const int spikeWarningWidth = MeasureText(spikeWarning, spikeWarningFontSize);
+    DrawText(spikeWarning,
+             static_cast<int>(groundRect.x + 140.0f + (3 * 28.0f - spikeWarningWidth) * 0.5f),
+             static_cast<int>(groundRect.y - 30.0f - spikeWarningFontSize - 8),
+             spikeWarningFontSize,
+             RED);
 
     // -- Second Row Platforms --
     const float platformHeight = static_cast<float>(screenHeight) * 0.025f; // 720 * 0.025 = 18 px tall
@@ -198,6 +220,14 @@ void DrawLevel1(Texture2D cat,
     DrawRect(platformRect2,kIceColor);
     platforms.push_back(platformRect2);
     levelState.icyPlatforms.push_back(platformRect2);
+
+    const char* iceWarningText = "Ice makes you slide";
+    const int iceWarningFontSize = 22;
+    DrawText(iceWarningText,
+             static_cast<int>(platformRect2.x + (platformRect2.width - static_cast<float>(MeasureText(iceWarningText, iceWarningFontSize))) * 0.5f),
+             static_cast<int>(platformRect2.y - iceWarningFontSize - 10),
+             iceWarningFontSize,
+             kIceColor);
 
     // -- Under 2nd Row Spikes --
     DrawSpikesDown(Vector2{groundRect.x + 140.0f, distFromTop + platformHeight * 2}, 3, 28.0f, 15.0f, &spikeHazards);
@@ -212,6 +242,13 @@ void DrawLevel1(Texture2D cat,
     mangoPositions.push_back(Vector2{
         static_cast<float>(screenWidth) * 0.60f,
         platformRect3.y - 2 * platformRect3.height - mangoHover});
+
+    const Color mangoTextColor{255, 180, 0, 255};
+    DrawText("Collect mangoes to win",
+             static_cast<int>(groundMangoPos.x - 220.0f),
+             static_cast<int>(groundMangoPos.y - 140.0f),
+             24,
+             mangoTextColor);
 
     // -- Bottom Vertical Spikes --
     DrawSideSpikesLeft(Vector2{static_cast<float>(screenWidth), groundRect.y - 11*30.0f}, 11, 30.0f, &spikeHazards);
@@ -289,6 +326,20 @@ void DrawLevel1(Texture2D cat,
     DrawRect(platformRect6,kPlatformColor);
     platforms.push_back(platformRect6);
 
+    mangoPositions.push_back(Vector2{
+        platformRect6.x + platformRect6.width * 0.35f,
+        platformRect6.y - platformHeight - 2 * mangoHover});
+
+    // End Goal (move to next level)
+    const float endGoalHeight = static_cast<float>(screenHeight) * 0.15f;
+    const Rectangle endGoalRect{
+        0.0,
+        distFromTop - platformHeight - 2 * 30.0f - endGoalHeight,
+        static_cast<float>(screenWidth) * 0.15f,
+        endGoalHeight
+    };
+    DrawRectangleLinesEx(endGoalRect, 4.0f, kEndGoalColor);
+
     // --- Player spawn ---
     PlayerControllerState& catState = levelState.cat;
     const float catWidth = static_cast<float>(cat.width) * catScale;
@@ -335,6 +386,7 @@ void DrawLevel1(Texture2D cat,
 
     Rectangle catCollisionRect = PlayerControllerCollisionRect(catState, catWidth, catHeight, controllerConfig.collisionPadding);
 
+    bool goalReached = false;
     int collectedCount = 0;
 
     if (!levelState.failed) {
@@ -374,6 +426,23 @@ void DrawLevel1(Texture2D cat,
         }
         if (tookDamage && !levelState.failed) {
             catCollisionRect = PlayerControllerCollisionRect(catState, catWidth, catHeight, controllerConfig.collisionPadding);
+        }
+    }
+
+    if (!levelState.failed) {
+        const float catLeft = catCollisionRect.x;
+        const float catRight = catCollisionRect.x + catCollisionRect.width;
+        const float catTop = catCollisionRect.y;
+        const float catBottom = catCollisionRect.y + catCollisionRect.height;
+        const float goalLeft = endGoalRect.x;
+        const float goalRight = endGoalRect.x + endGoalRect.width;
+        const float goalTop = endGoalRect.y;
+        const float goalBottom = endGoalRect.y + endGoalRect.height;
+        if (catLeft >= goalLeft &&
+            catRight <= goalRight &&
+            catTop >= goalTop &&
+            catBottom <= goalBottom) {
+            goalReached = true;
         }
     }
 
@@ -427,11 +496,13 @@ void DrawLevel1(Texture2D cat,
                 levelState.lives = 2;
                 levelRestarted = true;
             livesRemaining = levelState.lives;
+            levelCompleted = false;
         } else if (IsKeyPressed(KEY_Q)) {
             quitToMenu = true;
             collectedMangoes = collectedCount;
             levelFailed = true;
             livesRemaining = levelState.lives;
+            levelCompleted = false;
             return;
         }
 
@@ -439,6 +510,7 @@ void DrawLevel1(Texture2D cat,
             collectedMangoes = 0;
             levelFailed = true;
             livesRemaining = levelState.lives;
+            levelCompleted = false;
             return;
         }
     }
@@ -446,6 +518,7 @@ void DrawLevel1(Texture2D cat,
     levelFailed = levelState.failed;
     collectedMangoes = collectedCount;
     livesRemaining = levelState.lives;
+    levelCompleted = goalReached;
 }
 
 int GetLevel1TotalMangoCount()

@@ -43,12 +43,17 @@ int main(void)
     enum class GameState {
         Title,
         LevelSelect,
-        Level1
+        Level1,
+        LevelComplete
     };
 
     constexpr bool kDebugStartInLevel1 = true;
     GameState state = kDebugStartInLevel1 ? GameState::Level1 : GameState::Title;
     double levelStartTime = GetTime();
+    int currentLevel = 1;
+    int lastLevelElapsedSeconds = 0;
+    int lastLevelCollectedMangoes = 0;
+    int lastLevelTotalMangoes = 0;
 
     LevelData levels[10] = {};
     for (int i = 0; i < 10; ++i) {
@@ -79,6 +84,7 @@ int main(void)
                 selectedLevel = UpdateLevelSelect(selectedLevel, levels, 10);
                 if (IsKeyPressed(KEY_ENTER) && levels[selectedLevel - 1].unlocked) {
                     if (selectedLevel == 1) {
+                        currentLevel = selectedLevel;
                         ResetLevel1State();
                         state = GameState::Level1;
                         levelStartTime = GetTime();
@@ -95,6 +101,7 @@ int main(void)
                 bool levelFailed = false;
                 bool quitToMenu = false;
                 bool levelRestarted = false;
+                bool levelCompletedFlag = false;
                 const float deltaTime = GetFrameTime();
                 DrawLevel1(cat,
                            catScale,
@@ -105,20 +112,14 @@ int main(void)
                            livesRemaining,
                            levelFailed,
                            quitToMenu,
-                           levelRestarted);
-
-                if (quitToMenu) {
-                    ResetLevel1State();
-                    state = GameState::LevelSelect;
-                    EndDrawing();
-                    break;
-                }
+                           levelRestarted,
+                           levelCompletedFlag);
 
                 if (levelRestarted) {
                     levelStartTime = GetTime();
                 }
 
-                DrawLevelLabel(1);
+                DrawLevelLabel(currentLevel);
                 int elapsedSeconds = static_cast<int>(GetTime() - levelStartTime);
                 if (!levelFailed) {
                     DrawTimerLabel(elapsedSeconds);
@@ -127,6 +128,56 @@ int main(void)
                 DrawLives(livesRemaining);
 
                 EndDrawing();
+
+                if (quitToMenu) {
+                    ResetLevel1State();
+                    state = GameState::LevelSelect;
+                    break;
+                }
+
+                if (levelCompletedFlag) {
+                    lastLevelElapsedSeconds = elapsedSeconds;
+                    lastLevelCollectedMangoes = collectedMangoes;
+                    lastLevelTotalMangoes = GetLevel1TotalMangoCount();
+                    if (currentLevel < 10) {
+                        levels[currentLevel].unlocked = true;
+                    }
+                    ResetLevel1State();
+                    state = GameState::LevelComplete;
+                }
+                break;
+            }
+            case GameState::LevelComplete: {
+                BeginDrawing();
+                ClearBackground(BLACK);
+
+                const char *title = "Level Complete!";
+                const int titleFontSize = 48;
+                const int titleWidth = MeasureText(title, titleFontSize);
+                const Color goalAccent{0, 255, 128, 255};
+                DrawText(title, (screenWidth - titleWidth) / 2, screenHeight / 2 - 140, titleFontSize, goalAccent);
+
+                const int infoFontSize = 32;
+                const int minutes = lastLevelElapsedSeconds / 60;
+                const int seconds = lastLevelElapsedSeconds % 60;
+                const char *timeLabel = TextFormat("Time: %02d:%02d", minutes, seconds);
+                const int timeWidth = MeasureText(timeLabel, infoFontSize);
+                DrawText(timeLabel, (screenWidth - timeWidth) / 2, screenHeight / 2 - 40, infoFontSize, RAYWHITE);
+
+                const char *mangoLabel = TextFormat("Mangoes: %d/%d", lastLevelCollectedMangoes, lastLevelTotalMangoes);
+                const int mangoWidth = MeasureText(mangoLabel, infoFontSize);
+                DrawText(mangoLabel, (screenWidth - mangoWidth) / 2, screenHeight / 2 + 10, infoFontSize, RAYWHITE);
+
+                const char *prompt = "Press ENTER to return to level select";
+                const int promptFontSize = 24;
+                const int promptWidth = MeasureText(prompt, promptFontSize);
+                DrawText(prompt, (screenWidth - promptWidth) / 2, screenHeight / 2 + 90, promptFontSize, LIGHTGRAY);
+
+                EndDrawing();
+
+                if (IsKeyPressed(KEY_ENTER)) {
+                    state = GameState::LevelSelect;
+                }
                 break;
             }
         }
