@@ -79,6 +79,20 @@ void DrawSpikesDown(Vector2 start, int count, float width, float height, std::ve
     }
 }
 
+float OverlapWidth(const Rectangle& a, const Rectangle& b)
+{
+    float left = std::max(a.x, b.x);
+    float right = std::min(a.x + a.width, b.x + b.width);
+    return right - left;
+}
+
+float OverlapHeight(const Rectangle& a, const Rectangle& b)
+{
+    float top = std::max(a.y, b.y);
+    float bottom = std::min(a.y + a.height, b.y + b.height);
+    return bottom - top;
+}
+
 } // namespace
 
 namespace
@@ -95,6 +109,7 @@ struct LevelState {
     bool initialized = false;
     bool failed = false;
     int lives = 2;
+    std::vector<Rectangle> icyPlatforms;
 };
 
 LevelState& GetLevelState()
@@ -138,6 +153,13 @@ void DrawLevel1(Texture2D cat,
     std::vector<Rectangle> spikeHazards;
     spikeHazards.reserve(64);
 
+    std::vector<Rectangle> mustardHazards;
+    mustardHazards.reserve(8);
+
+    LevelState& levelState = GetLevelState();
+    levelState.icyPlatforms.clear();
+    levelState.icyPlatforms.reserve(4);
+
     std::vector<Vector2> mangoPositions;
     mangoPositions.reserve(4);
 
@@ -155,6 +177,11 @@ void DrawLevel1(Texture2D cat,
         groundHeight, // 36 px tall
     };
     DrawRect(greenCoreRect, kHighlightColor);
+    mustardHazards.push_back(Rectangle{
+        greenCoreRect.x,
+        groundRect.y - 16.0f,
+        greenCoreRect.width,
+        16.0f});
 
     
     // --- Floor spike clusters ---
@@ -170,6 +197,7 @@ void DrawLevel1(Texture2D cat,
     const Rectangle platformRect2{static_cast<float>(screenWidth) * 0.25f, distFromTop + platformHeight, static_cast<float>(screenWidth) * 0.16f, platformHeight};
     DrawRect(platformRect2,kIceColor);
     platforms.push_back(platformRect2);
+    levelState.icyPlatforms.push_back(platformRect2);
 
     // -- Under 2nd Row Spikes --
     DrawSpikesDown(Vector2{groundRect.x + 140.0f, distFromTop + platformHeight * 2}, 3, 28.0f, 15.0f, &spikeHazards);
@@ -221,7 +249,6 @@ void DrawLevel1(Texture2D cat,
     platforms.push_back(platformRect6);
 
     // --- Player spawn ---
-    LevelState& levelState = GetLevelState();
     PlayerControllerState& catState = levelState.cat;
     const float catWidth = static_cast<float>(cat.width) * catScale;
     const float catHeight = static_cast<float>(cat.height) * catScale;
@@ -255,7 +282,8 @@ void DrawLevel1(Texture2D cat,
         10.0f,    // collisionPadding
         2,        // maxJumps
         static_cast<float>(screenWidth),
-        static_cast<float>(screenHeight)
+        static_cast<float>(screenHeight),
+        &levelState.icyPlatforms
     };
 
     if (!levelState.failed) {
@@ -267,6 +295,45 @@ void DrawLevel1(Texture2D cat,
     Rectangle catCollisionRect = PlayerControllerCollisionRect(catState, catWidth, catHeight, controllerConfig.collisionPadding);
 
     int collectedCount = 0;
+
+    if (!levelState.failed) {
+        for (const Rectangle& hazard : mustardHazards) {
+            if (OverlapHeight(catCollisionRect, hazard) > 0.0f) {
+                float overlapW = OverlapWidth(catCollisionRect, hazard);
+                if (overlapW <= 0.0f) {
+                    continue;
+                }
+                float fraction = overlapW / catCollisionRect.width;
+                float catBottom = catCollisionRect.y + catCollisionRect.height;
+                float hazardTop = hazard.y;
+                float hazardBottom = hazard.y + hazard.height;
+                bool bottomOverHazard = catBottom > hazardTop && catBottom <= hazardBottom + 1.0f;
+                if (fraction >= 0.5f && bottomOverHazard) {
+                    levelState.failed = true;
+                    levelState.lives = 0;
+                    break;
+                }
+            }
+        }
+    }
+
+    if (!levelState.failed) {
+        bool tookDamage = false;
+        for (const Rectangle& hazard : spikeHazards) {
+            if (CheckCollisionRecs(catCollisionRect, hazard)) {
+                levelState.lives--;
+                PlayerControllerReset(catState, levelState.spawn);
+                if (levelState.lives <= 0) {
+                    levelState.failed = true;
+                }
+                tookDamage = true;
+                break;
+            }
+        }
+        if (tookDamage && !levelState.failed) {
+            catCollisionRect = PlayerControllerCollisionRect(catState, catWidth, catHeight, controllerConfig.collisionPadding);
+        }
+    }
 
     for (auto& mangoState : levelState.mangoes) {
         if (mangoState.collected) {
@@ -286,17 +353,10 @@ void DrawLevel1(Texture2D cat,
         bool tookDamage = false;
         for (const Rectangle& hazard : spikeHazards) {
             if (CheckCollisionRecs(catCollisionRect, hazard)) {
-                levelState.lives--;
-                PlayerControllerReset(catState, levelState.spawn);
-                if (levelState.lives <= 0) {
-                    levelState.failed = true;
-                }
-                tookDamage = true;
+                levelState.failed = true;
+                levelState.lives = 0;
                 break;
             }
-        }
-        if (tookDamage) {
-            catCollisionRect = PlayerControllerCollisionRect(catState, catWidth, catHeight, controllerConfig.collisionPadding);
         }
     }
 

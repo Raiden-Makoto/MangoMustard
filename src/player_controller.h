@@ -8,6 +8,8 @@ struct PlayerControllerState {
     Vector2 velocity{};
     bool grounded = false;
     int jumpsUsed = 0;
+    float horizontalVelocity = 0.0f;
+    bool onIce = false;
 };
 
 struct PlayerControllerConfig {
@@ -18,6 +20,7 @@ struct PlayerControllerConfig {
     int maxJumps;
     float screenWidth;
     float screenHeight;
+    const std::vector<Rectangle>* icyPlatforms = nullptr;
 };
 
 void PlayerControllerReset(PlayerControllerState& state, Vector2 spawn);

@@ -8,6 +8,8 @@ void PlayerControllerReset(PlayerControllerState& state, Vector2 spawn)
     state.velocity = {0.0f, 0.0f};
     state.grounded = true;
     state.jumpsUsed = 0;
+    state.horizontalVelocity = 0.0f;
+    state.onIce = false;
 }
 
 void PlayerControllerUpdate(PlayerControllerState& state,
@@ -17,13 +19,27 @@ void PlayerControllerUpdate(PlayerControllerState& state,
                             float spriteHeight,
                             const PlayerControllerConfig& config)
 {
-    float desiredX = state.position.x;
+    const bool jumpRequested = IsKeyPressed(KEY_UP);
+    float moveInput = 0.0f;
     if (IsKeyDown(KEY_RIGHT) || IsKeyDown(KEY_D)) {
-        desiredX += config.moveSpeed * deltaTime;
+        moveInput += 1.0f;
     }
     if (IsKeyDown(KEY_LEFT) || IsKeyDown(KEY_A)) {
-        desiredX -= config.moveSpeed * deltaTime;
+        moveInput -= 1.0f;
     }
+
+    const bool noInput = (moveInput == 0.0f);
+    if (!noInput) {
+        state.horizontalVelocity = moveInput * config.moveSpeed;
+    } else {
+        if (state.onIce || !state.grounded || jumpRequested) {
+            // retain momentum on ice or while airborne
+        } else {
+            state.horizontalVelocity = 0.0f;
+        }
+    }
+
+    float desiredX = state.position.x + state.horizontalVelocity * deltaTime;
 
     Rectangle horizontalRect{desiredX + config.collisionPadding,
                              state.position.y + config.collisionPadding,
@@ -38,6 +54,9 @@ void PlayerControllerUpdate(PlayerControllerState& state,
                 desiredX = platform.x + platform.width - config.collisionPadding;
             }
             horizontalRect.x = desiredX + config.collisionPadding;
+            if (!(state.onIce || state.grounded == false)) {
+                state.horizontalVelocity = 0.0f;
+            }
         }
     }
 
@@ -45,7 +64,12 @@ void PlayerControllerUpdate(PlayerControllerState& state,
 
     state.velocity.y += config.gravity * deltaTime;
 
-    if (IsKeyPressed(KEY_UP) && state.jumpsUsed < config.maxJumps) {
+    bool wasGrounded = state.grounded;
+    bool wasOnIce = state.onIce;
+    bool canJump = (state.jumpsUsed < config.maxJumps) &&
+                   (!wasGrounded || !wasOnIce);
+
+    if (jumpRequested && canJump) {
         state.velocity.y = config.jumpVelocity;
         state.grounded = false;
         state.jumpsUsed++;
@@ -58,6 +82,8 @@ void PlayerControllerUpdate(PlayerControllerState& state,
                             spriteHeight - config.collisionPadding * 2.0f};
 
     state.grounded = false;
+    state.onIce = false;
+    const std::vector<Rectangle>* icy = config.icyPlatforms;
 
     for (const Rectangle& platform : platforms) {
         if (CheckCollisionRecs(verticalRect, platform)) {
@@ -66,6 +92,14 @@ void PlayerControllerUpdate(PlayerControllerState& state,
                 state.velocity.y = 0.0f;
                 state.grounded = true;
                 state.jumpsUsed = 0;
+                if (icy != nullptr) {
+                    for (const Rectangle& icyRect : *icy) {
+                        if (CheckCollisionRecs(verticalRect, icyRect)) {
+                            state.onIce = true;
+                            break;
+                        }
+                    }
+                }
             } else {
                 desiredY = platform.y + platform.height - config.collisionPadding;
                 state.velocity.y = 0.0f;
@@ -82,6 +116,7 @@ void PlayerControllerUpdate(PlayerControllerState& state,
         state.velocity.y = 0.0f;
         state.grounded = true;
         state.jumpsUsed = 0;
+        state.onIce = false;
     }
 }
 
